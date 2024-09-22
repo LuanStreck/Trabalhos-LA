@@ -1,0 +1,361 @@
+/*********************************************************************
+// Canvas para desenho, criada sobre a API OpenGL. Nao eh necessario conhecimentos de OpenGL para usar.
+//  Autor: Cesar Tadeu Pozzer
+//         05/2020
+//
+//  Pode ser utilizada para fazer desenhos, animacoes, e jogos simples.
+//  Tem tratamento de mouse e teclado
+//  Estude o OpenGL antes de tentar compreender o arquivo gl_canvas.cpp
+
+//  Todos os arquivos do projeto devem ser .cpp
+//
+//  Versao 2.0
+//
+// *********************************************************************/
+
+//arquivo principal para a execucao do codigo do trabalho. Contem codigos para a interacao com o keyboard, mouse, etc
+//aqui gera a matriz e sorteia os numeros, alem de conter a parte interativa.
+//a maior parte das funcoes recebe a matriz como int por facilitar a troca em caso de mudanca de codigo fonte
+#include <GL/glut.h>
+#include <GL/freeglut_ext.h> //callback da wheel do mouse.
+
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include "gl_canvas2d.h"
+
+#include "Global.h"
+
+#include "LinhasColunasDiag.h"
+#include "Estetica.h"
+#include "auxiliar.h"
+
+int matriz[g_maxl][g_maxc];
+int limitador= 0;
+int teclaN=0;
+int liberadestaca=0;
+int exibir_soma= 0;
+int mudamat= 0;
+int dim_matriz= 10;
+int destacadiag=0;
+//variaveis que comecam as funcoes desligadas
+int resetm= 0;
+int resetd= 0;
+int resets= 0;
+//variaveis globais para coordenar animacao
+int animacao= 1;
+int anim_matriz= 0;
+int anim_menu=1200;
+int anim_botoes= 0;
+int anim_paleta= 0;
+//cores das linhas colunas e diagonais inciais
+int cores_lin_col= 2;
+int cor_diag= 3;
+//variaveis para coordenar o inicio das janelas
+
+int screenWidth = 1200, screenHeight = 600; //largura e altura inicial da tela. Alteram com o redimensionamento de tela.
+int mouseX, mouseY; //variaveis globais do mouse para poder exibir dentro da render().
+
+void DrawMouseScreenCoords()
+{
+    char str[100];
+    sprintf(str, "Mouse: (%d,%d)", mouseX, mouseY);
+    CV::text(10,300, str);
+    sprintf(str, "Screen: (%d,%d)", screenWidth, screenHeight);
+    CV::text(10,320, str);
+}
+
+void tamMatriz () //funcao para mudar o tamanho da matriz
+{
+    dim_matriz= g_maxl+ mudamat; //variavel dos valores de linhas e colunas
+    if (dim_matriz<=g_minmat){
+        dim_matriz= 3;
+        mudamat=-7;
+    }
+    if (dim_matriz>=g_maxl){
+        dim_matriz= 10;
+        mudamat=0;
+    }
+}
+
+int str_Matriz() //funcao de sorteio da matriz
+{
+    int geramatriz;
+    geramatriz= (rand()%(g_nummax - g_nummin + 1) + g_nummin); //para gerar numeros negativos e positivos
+    return geramatriz;
+}
+
+void criamatriz(int matriz[g_maxl][g_maxc]) //funcao que cria a matriz
+{
+
+    char strmatriz[4];
+    int x=100, y=560;
+    int i, j;
+    int colunamsoma, linhamsoma;
+    srand(time(NULL));
+    if ((limitador==0) || (teclaN==1)){
+    for (i=0; i<dim_matriz; i++){ //sorteio da matriz
+        for (j=0; j<dim_matriz; j++){
+            matriz[i][j]= str_Matriz();
+            }
+        }
+    }
+
+    colunamsoma= colunaMaiorSoma(matriz); //obter a coluna de maior soma
+    linhamsoma= linhaMaiorSoma(matriz); //obter a linha de maior soma
+
+    for (i=0; i<dim_matriz; i++){
+        x=100;
+        for (j=0; j<dim_matriz; j++){
+            if (matriz[i][j]>=0){
+                if ((liberadestaca==1) && ((colunamsoma==j) || (linhamsoma==i))){ //para printar destacado a linha e coluna de maior soma
+                    CV::color(cores_lin_col);
+                    sprintf(strmatriz," %d ", matriz[i][j] );
+                    CV::text(x,y, strmatriz);
+                    x+=40;
+                    CV::color(0);
+                }
+
+                else{ //print normal da matriz
+                    CV::color(0);
+                    sprintf(strmatriz," %d ", matriz[i][j] );
+                    CV::text(x,y, strmatriz);
+                    x+=40;
+                }
+            }
+            else{
+                if ((liberadestaca==1) && ((colunamsoma==j) || (linhamsoma==i))){ //para printar destacado a linha e coluna de maior soma
+                    CV::color(cores_lin_col);
+                    sprintf(strmatriz,"%d ", matriz[i][j] );
+                    CV::text(x,y, strmatriz);
+                    x+=40;
+                    CV::color(0);
+                }
+
+                else{ //print normal da matriz
+                    CV::color(0);
+                    sprintf(strmatriz,"%d ", matriz[i][j] );
+                    CV::text(x,y, strmatriz);
+                    x+=40;
+            }
+            }
+    }
+    y-=40;
+    }
+    if (destacadiag==1){
+        destacaDiagonal(matriz);
+    }
+    destacaRect(matriz);
+    limitador=1;
+    teclaN=0;
+}
+
+void interacao(int x, int y) //para ativar as funcoes com cliques e mudar as cores
+{
+    //ifs para executar as funcoes
+    if (x>=830 && y>=500 && x<=905 && y<=575){
+         if (resetm%2==0){
+            liberadestaca=1;
+        }
+        else{
+            liberadestaca=0;
+        }
+        criamatriz(matriz);
+        resetm++;
+    }
+
+    if (x>=950 && y>=500 && x<=1025 && y<=575){ //Tecla N
+        teclaN=1;
+        criamatriz(matriz);
+    }
+
+    if (x>=1070 && y>=500 && x<=1145 && y<=575){ //Tecla M
+        if (resets%2==0){
+            exibir_soma= 1;
+        }
+        else{
+            exibir_soma= 0;
+        }
+        criamatriz(matriz);
+        resets++;
+    }
+
+    if (x>=830 && y>=375 && x<=905 && y<=450){ //tecla D
+        if (resetd%2==0){
+            destacadiag=1;
+        }
+        else{
+            destacadiag=0;
+        }
+        criamatriz(matriz);
+        resetd++;
+    }
+
+    if (x>=950 && y>=375 && x<=1025 && y<=450){ //Tecla +
+        mudamat++;
+        tamMatriz();
+        criamatriz(matriz);
+    }
+
+    if (x>=1070 && y>=375 && x<=1145 && y<=450){ //Tecla -
+        mudamat--;
+        tamMatriz();
+        criamatriz(matriz);
+    }
+
+    if (x>=950 && y>=5 && x<=1040 && y<=35){ //Tecla E (para sair)
+        exit(0);
+    }
+
+    //ifs para as cores das colunas e linhas
+    if (x>=830 && y>=225 && x<=880 && y<=275){
+        cores_lin_col=2;
+    }
+
+    if (x>=920 && y>=225 && x<=970 && y<=275){
+        cores_lin_col=3;
+    }
+
+    if (x>=1010 && y>=225 && x<=1060 && y<=275){
+        cores_lin_col=4;
+    }
+
+    if (x>=1100 && y>=225 && x<=1150 && y<=275){
+        cores_lin_col=5;
+    }
+    //cores para a diagonal
+    if (x>=830 && y>=125 && x<=880 && y<=175){
+        cor_diag=2;
+    }
+
+    if (x>=920 && y>=125 && x<=970 && y<=175){
+        cor_diag=3;
+    }
+
+    if (x>=1010 && y>=125 && x<=1060 && y<=175){
+        cor_diag=4;
+    }
+
+    if (x>=1100 && y>=125 && x<=1150 && y<=175){
+        cor_diag=5;
+    }
+}
+
+void render()
+{
+    CV::clear(1,1,1);
+    funcaoDeOutroArquivo();
+
+    if (animacao==1){
+       animacaoTela();
+    }
+    else{
+        CV::color(0);
+        CV::line(90, 585, 530, 585);
+        CV::line(90, 585, 90, 160);
+        criamatriz(matriz);
+
+        escritaCanvas();
+    }
+}
+
+//funcao chamada toda vez que uma tecla for pressionada
+void keyboard(int key)
+{
+    //funcao chamada em outras bibliotecas, e indispensavel para fazer alteracoes no codigo, com relacao a teclas, por isso nao foi excluida
+    //printf("\nTecla: %d" , key);
+
+   switch(key)
+   {
+      case 110: //tecla n, gera nova matriz
+      case 78: //tecla N, gera nova matriz
+        teclaN=1;
+        criamatriz(matriz);
+        break;
+
+      case 109: //tecla m, destacar linha e coluna
+      case 77: //tecla M, destacar linha e coluna
+        if (resetm%2==0){
+            liberadestaca=1;
+        }
+        else{
+            liberadestaca=0;
+        }
+        criamatriz(matriz);
+        resetm++;
+        break;
+
+      case 100: //tecla d
+      case 68: //tecla D
+        if (resetd%2==0){
+            destacadiag=1;
+        }
+        else{
+            destacadiag=0;
+        }
+        criamatriz(matriz);
+        resetd++;
+        break;
+
+      case 115: //tecla s
+      case 83: //tecla S
+        if (resets%2==0){
+            exibir_soma= 1;
+        }
+        else{
+            exibir_soma= 0;
+        }
+        criamatriz(matriz);
+        resets++;
+        break;
+
+      case 61: //tecla +
+      case 118:
+      case 86:
+        mudamat++;
+        tamMatriz();
+        criamatriz(matriz);
+        break;
+
+      case 45: //tecla -
+      case 67:
+      case 99:
+        mudamat--;
+        tamMatriz();
+        criamatriz(matriz);
+        break;
+
+      case 101: //tecla e (encerra o codigo)
+      case 69: //tecla E (encerra o codigo)
+        exit(0);
+        break;
+   }
+}
+
+//funcao para tratamento de mouse: cliques, movimentos e arrastos
+void mouse(int button, int state, int wheel, int direction, int x, int y)
+{
+   mouseX = x; //guarda as coordenadas do mouse para exibir dentro da render()
+   mouseY = y;
+
+   if (button==0 && state==1){
+        interacao(mouseX, mouseY);
+   }
+}
+
+//funcao chamada toda vez que uma tecla for liberada
+//funcao chamada em outras bibliotecas, e indispensavel para fazer alteracoes no codigo, com relacao a teclas, por isso nao foi excluida
+void keyboardUp(int key)
+{
+   //printf("\nLiberou tecla: %d" , key);
+}
+
+int main(void)
+{
+    str_Matriz(); //chama o sorteio da matriz
+
+   CV::init(&screenWidth, &screenHeight, "Luan Tiago Streck - Canvas 2D - Trabalho");
+
+   CV::run();
+}
