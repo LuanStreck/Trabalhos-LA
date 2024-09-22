@@ -1,0 +1,528 @@
+/*********************************************************************
+// Canvas para desenho, criada sobre a API OpenGL. Nao eh necessario conhecimentos de OpenGL para usar.
+//  Autor: Cesar Tadeu Pozzer
+//         05/2024
+//
+//  Pode ser utilizada para fazer desenhos, animacoes, e jogos simples.
+//  Tem tratamento de mouse e teclado
+//  Estude o OpenGL antes de tentar compreender o arquivo gl_canvas.cpp
+
+//  Todos os arquivos do projeto devem ser .cpp
+//
+//  Versao 2.0
+//
+// *********************************************************************/
+
+#include <GL/glut.h>
+#include <GL/freeglut_ext.h> //callback da wheel do mouse.
+
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include "gl_canvas2d.h"
+
+#include "auxiliar.h" //precisa incluir para ter o prototipo da funcao funcaoDeOutroArquivo().
+
+#define g_tam_tab 7
+
+int inicio=1;
+int tabuleiro[g_tam_tab][g_tam_tab];
+int colunajogada=0;
+int player=0;
+int vencedor=0;
+int menu=1;
+int tam_tab= 4;
+int botao_acaox= 400;
+int botao_acaoy= 500;
+int IA=0;
+int ganhou=0;
+int anim_vencedor=0;
+int corvitoria=2;
+int jogarmouse=0;
+//variaveis globais
+int screenWidth = 1000, screenHeight = 600; //largura e altura inicial da tela. Alteram com o redimensionamento de tela.
+int mouseX, mouseY; //variaveis globais do mouse para poder exibir dentro da render().
+
+void inicializarTabuleiro(int tabuleiro[g_tam_tab][g_tam_tab]){ //gera a matriz do tabuleiro inicial
+    int i, j;
+    for (int i=0; i<tam_tab; i++) {
+        for (int j=0; j<tam_tab; j++) {
+            tabuleiro[i][j] = 0;
+        }
+    }
+}
+
+int verificarVitoria(int tabuleiro[g_tam_tab][g_tam_tab]){ //executa a logica de todo o jogo, para conhecer quem e o vencedor, utilizada na IA tambem
+    int i, j, aux=0, cont=0, auxd;
+    for (i=0; i<tam_tab; i++){
+        for (j=0; j<tam_tab; j++){
+            if (tabuleiro[i][j]==1 || tabuleiro[i][j]==2){
+                aux=j;
+                cont=0;
+                while (tabuleiro[i][aux]==tabuleiro[i][j] && aux<tam_tab){
+                    cont++;
+                    if (cont==4){
+                        return 1;
+                    }
+                    aux++;
+                }
+            }
+            if (tabuleiro[i][j]==1 || tabuleiro[i][j]==2){
+                aux=i;
+                cont= 0;
+                while (tabuleiro[aux][j]==tabuleiro[i][j] && aux<tam_tab){
+                    cont++;
+                    if (cont==4){
+                        return 1;
+                    }
+                    aux++;
+                }
+            }
+            if (tabuleiro[i][j]==1 || tabuleiro[i][j]==2){
+                aux=i;
+                auxd=j;
+                cont= 0;
+                while (tabuleiro[aux][auxd]==tabuleiro[i][j] && aux<tam_tab && auxd<tam_tab){
+                    cont++;
+                    if (cont==4){
+                        return 1;
+                    }
+                    aux++;
+                    auxd++;
+                }
+                aux=0;
+                auxd=0;
+            }
+            if (tabuleiro[i][j]==1 || tabuleiro[i][j]==2){
+                aux=i;
+                auxd=j;
+                cont= 0;
+                while (tabuleiro[aux][auxd]==tabuleiro[i][j] && aux<tam_tab && auxd<tam_tab){
+                    cont++;
+                    if (cont==4){
+                        return 1;
+                    }
+                    aux++;
+                    auxd--;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+void exibirTabuleiro(int tabuleiro[g_tam_tab][g_tam_tab]){ //basicamente completa a matriz com a jogada dos players
+    inicio=0;
+    int ganhou, x= 150, y=150, i= 0, j= 0, multiplicax=0, multiplicay=0;
+    char pvencedor[100];
+    CV::color(4);
+    CV::rectFill(x-10, y-10, x+tam_tab*50+10, y+tam_tab*50+10);
+    CV::color(0);
+    CV::rect(x-10, y-10, x+tam_tab*50+10, y+tam_tab*50+10);
+    for (i=0; i<tam_tab; i++){
+        for (j=0; j<tam_tab; j++){
+                if (tabuleiro[i][j]==1){
+                    CV::color(2);
+                    CV::circleFill((x+25)+multiplicax*50, (y+25)+multiplicay*50, 20, 20);
+                }
+                else if (tabuleiro[i][j]==2){
+                    CV::color(3);
+                    CV::circleFill((x+25)+multiplicax*50, (y+25)+multiplicay*50, 20, 20);
+                }
+                else{
+                    CV::color(1,1,1);
+                    CV::circleFill((x+25)+multiplicax*50, (y+25)+multiplicay*50, 20, 20);
+                }
+                multiplicax++;
+        }
+        multiplicax=0;
+        multiplicay++;
+    }
+    ganhou= player%2;
+    if (ganhou==0){
+        ganhou=2;
+    }
+    //como e constantemente chamada, aqui vai a estetica fora do menu, ou seja, durante o jogo
+    CV::color(3);
+    CV::circleFill(400, 100, 20, 20);
+    CV::color(2);
+    CV::circleFill(400, 50, 20, 20);
+    CV::color(1);
+    CV::rectFill(botao_acaox+150, 500, botao_acaox+230, 420);
+    CV::color(ganhou+1);
+    CV::circleFill(botao_acaox+190, 460, 30, 20);
+    CV::color(0);
+    CV::text(botao_acaox+120, 515, "USE O MOUSE AQUI");
+    CV::rect(botao_acaox+150, 500, botao_acaox+230, 420);
+    CV::text(430, 100, "Player 1");
+    CV::text(430, 50, "Player 2");
+    if (player==tam_tab*tam_tab && vencedor!=1){
+        CV::color(1);
+        CV::rectFill(botao_acaox+200, botao_acaoy, botao_acaox+500, botao_acaoy-300/4);
+        CV::color(0);
+        CV::text(botao_acaox+240, botao_acaoy-300/8, "EMPATE  :/");; //caso de empate
+        CV::rect(botao_acaox+200, botao_acaoy, botao_acaox+500, botao_acaoy-300/4);
+    }
+    if (vencedor==1){
+        if ((IA==0) ||(IA==1 && ganhou==1)){
+            sprintf(pvencedor, "Player %d VENCEDOR!!!", ganhou);
+        }
+        else if (IA==1 && ganhou==2){
+            sprintf(pvencedor, "Computador VENCEDOR!!!");
+        }
+        if (anim_vencedor<300){ //animacao de vencedor
+            CV::color(7);
+            CV::rectFill(botao_acaox+200, botao_acaoy-200, botao_acaox+200+anim_vencedor, botao_acaoy-200-anim_vencedor/4);
+            CV::color(0);
+            CV::rect(botao_acaox+200, botao_acaoy-200, botao_acaox+200+anim_vencedor, botao_acaoy-200-anim_vencedor/4);
+            anim_vencedor++;
+            Sleep(3);
+            return;
+        } // animacao da luz que pisca
+        corvitoria=corvitoria%4;
+        corvitoria++;
+        CV::color(corvitoria+1);
+        CV::rectFill(botao_acaox+200, botao_acaoy-200, botao_acaox+200+anim_vencedor, botao_acaoy-200-anim_vencedor/4);
+        CV::color(corvitoria+2);
+        CV::rect(botao_acaox+200, botao_acaoy-200, botao_acaox+200+anim_vencedor, botao_acaoy-200-anim_vencedor/4);
+        CV::color(0);
+        CV::rect(botao_acaox+200, botao_acaoy-200, botao_acaox+200+anim_vencedor, botao_acaoy-200-anim_vencedor/4);
+        CV::text(botao_acaox+240, botao_acaoy-200-anim_vencedor/8, pvencedor);; //da quem e o vencedor
+        Sleep(100);
+        return;
+    }
+}
+
+void jogar(int tabuleiro[g_tam_tab][g_tam_tab],int colunajogada){ //recebe a jogada dos players e completa a matriz
+    int i, jogador=0;
+    char texto[100];
+    char textojogador[100];
+    jogador= player%2;
+    if (jogador==0){
+        jogador=2;
+    }
+    if (colunajogada!=0 && vencedor!=1){
+    for (i=0; i<tam_tab; i++) {
+            if (tabuleiro[i][colunajogada-1]==0){
+                tabuleiro[i][colunajogada-1]= jogador;
+                player++;
+                break;
+            }
+            else{
+                CV::text(50, 50, "Jogada Invalida!");
+            }
+        }
+        if (i<0) {
+            sprintf(texto, "Coluna %d cheia!", colunajogada);
+            CV::color(1, 0, 0);
+            CV::text(50, 50, texto);
+        }
+    }
+}
+
+void inteligenciaArtificial(int tabuleiro[g_tam_tab][g_tam_tab]){ //inteligencia artificial que verifica a possibilidade de vitoria e derrota em uma jogada, se nao, joga aleatoriamente
+    int i, j, verificacao;
+    int colunajogada=-1;
+    for (j=0; j<tam_tab; j++) {
+        for (i=0; i<tam_tab; i++){
+            if (tabuleiro[i][j]==0){
+                tabuleiro[i][j]=1;
+                verificacao=verificarVitoria(tabuleiro);
+                if (verificacao==1){
+                    colunajogada=j;
+                }
+                tabuleiro[i][j]=0;
+                break;
+            }
+        }
+        if (colunajogada!=-1){
+            break;
+        }
+    }
+    if (colunajogada==-1){
+        for (j=0; j<tam_tab; j++){
+            for (i=0; i<tam_tab; i++){
+                if (tabuleiro[i][j]==0){
+                    tabuleiro[i][j]=2;
+                    verificacao=verificarVitoria(tabuleiro);
+                    if (verificacao==1){
+                        colunajogada=j;
+                    }
+                    tabuleiro[i][j]=0; // Desfazer jogada
+                    break;
+                }
+            }
+            if (colunajogada!=-1){
+                    break;
+            }
+        }
+    }
+    if (colunajogada==-1){
+        srand(time(NULL));
+        colunajogada=rand()%tam_tab;
+    }
+    jogar(tabuleiro, colunajogada+1);
+}
+
+void estetica(){ //da a estetica e tudo que se ve nos menus do jogo
+    if (menu==1){
+        CV::clear(1,1,1);
+        CV::color(1);
+        CV::rectFill(40,200, 950, 520);
+        CV::color(1,1,1);
+        CV::rectFill(400, 210, 515, 260);
+        CV::color(0);
+        CV::rect(40,200, 950, 520);
+        CV::text(45, 500, "Este e o Connect 4. ");
+        CV::text(45, 460, "Para jogar ele voce deve utilizar as teclas de 1 a 7, dependendo o tamanho da matriz,");
+        CV::text(45, 430, "para escolher uma coluna para colocar as pecas.");
+        CV::text(45, 400, "Voce tambem pode fazer isso utilizando o mouse, selecionando a peca e, apos, a coluna.");
+        CV::text(45, 370, "As pecas preenchem a matriz do jogo de baixo para cima, como se as pecas caissem pra baixo.");
+        CV::text(45, 340, "Ganha quem completar primeiro uma sequencia de 4 pecas na diagonal, vertical ou horizontal");
+        CV::text(45, 310, "Para sair, pressione 'E' a qualquer momento");
+        CV::rect(400, 210, 515, 260);
+        CV::text(430, 230, "JOGAR");
+    }
+    else if (menu==2){
+        CV::color(1);
+        CV::rectFill(40,100, 950, 550);
+        CV::color(1,1,1);
+        CV::rectFill(botao_acaox, botao_acaoy-100, botao_acaox+115, botao_acaoy-150);
+        CV::rectFill(botao_acaox, botao_acaoy-200, botao_acaox+115, botao_acaoy-250);
+        CV::color(0);
+        CV::text(botao_acaox-50, botao_acaoy-70, "Voce deseja jogar contra?");
+        CV::line(botao_acaox-50, botao_acaoy-75, botao_acaox+200, botao_acaoy-75);
+        CV::rect(botao_acaox, botao_acaoy-100, botao_acaox+115, botao_acaoy-150);
+        CV::rect(botao_acaox, botao_acaoy-200, botao_acaox+115, botao_acaoy-250);
+        CV::rect(40,100, 950, 550);
+        CV::text(botao_acaox+10, botao_acaoy-100-30, "Computador");
+        CV::text(botao_acaox+25, botao_acaoy-200-30, "Jogador");
+    }
+    else if (menu==3){
+        CV::color(1);
+        CV::rectFill(40,100, 950, 550);
+        CV::color(1,1,1);
+        CV::rectFill(botao_acaox, botao_acaoy, botao_acaox+115, botao_acaoy-50);
+        CV::rectFill(botao_acaox, botao_acaoy-100, botao_acaox+115, botao_acaoy-150);
+        CV::rectFill(botao_acaox, botao_acaoy-200, botao_acaox+115, botao_acaoy-250);
+        CV::rectFill(botao_acaox, botao_acaoy-300, botao_acaox+115, botao_acaoy-350);
+        CV::color(0);
+        CV::text(botao_acaox-100, botao_acaoy+15, "Com qual matriz voce deseja jogar?");
+        CV::rect(botao_acaox, botao_acaoy, botao_acaox+115, botao_acaoy-50);
+        CV::rect(botao_acaox, botao_acaoy-100, botao_acaox+115, botao_acaoy-150);
+        CV::rect(botao_acaox, botao_acaoy-200, botao_acaox+115, botao_acaoy-250);
+        CV::rect(botao_acaox, botao_acaoy-300, botao_acaox+115, botao_acaoy-350);
+        CV::rect(40,100, 950, 550);
+        CV::text(botao_acaox+40, botao_acaoy-30, "7x7");
+        CV::text(botao_acaox+40, botao_acaoy-100-30, "6x6");
+        CV::text(botao_acaox+40, botao_acaoy-200-30, "5x5");
+        CV::text(botao_acaox+40, botao_acaoy-300-30, "4x4");
+    }
+}
+
+void interacao(int x,int y){ //coordena a interacao pelo uso do mouse, nos menus e na jogada com mouse
+    if (menu==1){
+        if (x>=400 && x<=515 && y>=210 && y<=260){
+            menu=2;
+        }
+    }
+    else if (menu==2){
+        if (x>=botao_acaox && x<=botao_acaox+115 && y<=botao_acaoy-100 && y>=botao_acaoy-150){
+            IA=1;
+            menu=3;
+        }
+        if (x>=botao_acaox && x<=botao_acaox+115 && y<=botao_acaoy-200 && y>=botao_acaoy-250){
+            IA=0;
+            menu=3;
+        }
+    }
+    else if (menu==3){
+        if (x>=botao_acaox && x<=botao_acaox+115 && y<=botao_acaoy && y>=botao_acaoy-50){
+            tam_tab=7;
+            menu=0;
+        }
+        if (x>=botao_acaox && x<=botao_acaox+115 && y<=botao_acaoy-100 && y>=botao_acaoy-150){
+            tam_tab=6;
+            menu=0;
+        }
+        if (x>=botao_acaox && x<=botao_acaox+115 && y<=botao_acaoy-200 && y>=botao_acaoy-250){
+            tam_tab=5;
+            menu=0;
+        }
+        if (x>=botao_acaox && x<=botao_acaox+115 && y<=botao_acaoy-300 && y>=botao_acaoy-350){
+            tam_tab=4;
+            menu=0;
+        }
+    }
+    else if (menu==0){
+        if (jogarmouse==0){
+            if (x>=botao_acaox+150 && x<=botao_acaox+230 && y<=500 && y>=420){
+                jogarmouse=1;
+            }
+            else{
+
+            }
+        }
+        else if (jogarmouse==1){
+            if (x>=140 && x<=140+tam_tab*50+10 && y>=140 && y<=140+tam_tab*50+10){
+                if (x>=140 && x<=200){
+                    colunajogada=1;
+                }
+                else if (x>200 && x<=250){
+                    colunajogada=2;
+                }
+                else if (x>250 && x<=300){
+                    colunajogada=3;
+                }
+                else if (x>300 && x<=350){
+                    colunajogada=4;
+                }
+                else if (x>350 && x<=400){
+                    if (tam_tab>=5){
+                        colunajogada=5;
+                    }
+                    else{
+                        colunajogada=0;
+                    }
+                }
+                else if (x>400 && x<=450){
+                    if (tam_tab>=6){
+                        colunajogada=6;
+                    }
+                    else{
+                        colunajogada=0;
+                    }
+                }
+                else if (x>450 && x<=500){
+                    if (tam_tab>=7){
+                        colunajogada=7;
+                    }
+                    else{
+                        colunajogada=0;
+                    }
+                }
+                else{
+                    colunajogada=0;
+                }
+            }
+            else{//invalidar jogada se for fora da matriz
+                colunajogada=0;
+            }
+            jogar(tabuleiro, colunajogada);
+            jogarmouse=0;
+        }
+    }
+}
+//funcao chamada continuamente. Deve-se controlar o que desenhar por meio de variaveis
+//globais que podem ser setadas pelo metodo keyboard()
+void render()
+{
+    estetica(); //chama a funcao dos menus
+    if (menu!=1 && menu!=2 && menu!=3){
+        int turnop, corbola=2;
+        char turnojogador[50];
+        turnop= player%2+1;
+        vencedor= verificarVitoria(tabuleiro);
+        if (turnop==0){
+            turnop=2;
+        }
+        corbola= turnop;
+        if (corbola==1){
+            corbola=3;
+        }
+        if (IA==1 && turnop==2){
+            inteligenciaArtificial(tabuleiro);
+        }
+        if (vencedor==0){
+            CV::clear(1,1,1);
+            exibirTabuleiro(tabuleiro);
+            CV::color(0);
+            sprintf(turnojogador, "Turno do Player %d", turnop);
+            CV::text(100, 100, turnojogador);;
+        }
+        else{
+            exibirTabuleiro(tabuleiro);
+        }
+        if (jogarmouse==1){//para a jogada com mouse
+        CV::color(corbola);
+        CV::circleFill(mouseX, mouseY, 30, 20);
+        }
+    }
+}
+//funcao chamada toda vez que uma tecla for pressionada
+void keyboard(int key)// coordena as jogadas pelo teclado
+{
+   int jogadaia;
+   jogadaia= player%2;
+    switch(key)
+   {
+      case 49: //tecla 1
+          colunajogada=1;
+        break;
+        case 50: //tecla 2
+            colunajogada=2;
+        break;
+        case 51: //tecla 3
+            colunajogada=3;
+        break;
+        case 52: //tecla 4
+            colunajogada=4;
+        break;
+        case 53: //tecla 5
+            if (tam_tab>=5){
+            colunajogada=5;
+            }
+            else{
+                colunajogada=0;
+            }
+        break;
+        case 54: //tecla 6
+            if (tam_tab>=6){
+            colunajogada=6;
+            }
+            else{
+                colunajogada=0;
+            }
+        break;
+        case 55: //tecla 7
+            if (tam_tab>=7){
+            colunajogada=7;
+            }
+            else{
+                colunajogada=0;
+            }
+        break;
+        case 101:
+        case 69:
+            exit(0);
+        break;
+        default:
+            colunajogada=0;
+        break;
+}
+        jogar(tabuleiro, colunajogada);
+}
+
+//funcao chamada toda vez que uma tecla for liberada
+void keyboardUp(int key)
+{
+}
+//funcao para tratamento de mouse: cliques, movimentos e arrastos
+void mouse(int button, int state, int wheel, int direction, int x, int y)//permite o uso do mouse no jogo, menus e jogada
+{
+   mouseX= x; //guarda as coordenadas do mouse para exibir dentro da render()
+   mouseY= y;
+   if (state==1 && button==0){
+        interacao(mouseX, mouseY);
+   }
+}
+
+int main(void) //funcao principal
+{
+    inicializarTabuleiro(tabuleiro);
+    CV::init(&screenWidth, &screenHeight, "Trabalho 4 do Luan");
+
+    CV::run();
+}
