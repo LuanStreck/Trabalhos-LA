@@ -1,0 +1,180 @@
+//esse arquivo possui os codigos responsaveis pela aparencia e apresentacao do trabalho, ou seja, a animacao e o que se ve na tela
+//e um codigo "bruto" pois sua ideia e desenhar linhas e quadrados e pintar mesmo.
+//LER LINHA 52 PARA ENTENDER A ESCRITA NA TELA.
+#include "Estetica.h"
+#include "gl_canvas2d.h"
+
+
+void escritaCanvas(){
+    //CV::color(0);
+    //textos da legenda dos botoes
+    //Cor cinza
+    CV::color(1);
+    CV::rectFill(800,0,1400,1000);
+    //Cor branca
+    CV::color(1,1,1);
+    //teclas da interface
+    CV::rectFill(830,500,905,575);//tecla M
+    CV::rectFill(950,500,1025,575); //Tecla N
+    CV::rectFill(1070,500,1145,575); //Tecla S
+    CV::text(830, 485, "Destacar");
+    CV::text(801, 470, "linhas e colunas");
+    CV::text(970, 485, "Nova");
+    CV::text(965, 470, "matriz");
+    CV::text(1070, 485, "Soma de");
+    CV::text(1035, 470, "linhas e colunas");
+    CV::rectFill(830,375,905,450);
+    CV::rectFill(950,375,1025,450);
+    CV::rectFill(1070,375,1145,450);
+    CV::text(830, 360, "Destacar");
+    CV::text(830, 345, "diagonal");
+    CV::text(955, 360, "Aumentar");
+    CV::text(960, 345, "matriz");
+    CV::text(1070, 360, "Diminuir");
+    CV::text(1075, 345, "matriz");
+    CV::rectFill(950, 35, 1040, 5); //tecla exit
+    //Cor preta
+    CV::color(0);
+    CV::rect(830,500,905,575); //tecla M
+    CV::rect(950,500,1025,575); //tecla N
+    CV::rect(1070,500,1145,575); //tecla S
+    CV::text(865, 540, "M");
+    CV::text(985, 540, "N");
+    CV::text(1105, 540, "S");
+    CV::rect(830,375,905,450); //tecla D
+    CV::rect(950,375,1025,450); //tecla +
+    CV::rect(1070,375,1145,450); //tecla -
+    CV::text(865, 415, "D");
+    CV::text(985, 415, "+");
+    CV::text(1105, 415, "-");
+    CV::rect(950, 35, 1040, 5);
+    CV::text(955,15, "SAIR (E)");
+    CV::text(930, 50, "1");
+    //as teclas de + e - podem mudar conforme o teclado, mudando a forma como a funcao e chamada, por isso alterei para funcionar com algarismos do teclado que sao os mesmos para todos.
+    CV::text(100, 100, "A legenda de funcionamento das teclas esta ao lado,");
+    CV::text(100, 85, "caso as teclas de + e - nao funcionem, utilize V e");
+    CV::text(100, 70, "C respectivamente.");
+    CV::text(100, 55, "V/v/+ = aumentar matriz");
+    CV::text(100, 40, "C/c/- = diminuir matriz");
+    //fundo para a palheta de cores
+    CV::color(1,1,1);
+    CV::rectFill(815,50,1175,325);
+    //palheta de cores linhas e colunas
+    CV::color(0);
+    CV::text(830, 300, "Cores para destaque da maior soma");
+    CV::color(2);
+    CV::rectFill(830,225,880,275); //cor vermelha
+    CV::color(3);
+    CV::rectFill(920,225,970,275); //cor verde
+    CV::color(4);
+    CV::rectFill(1010,225,1060,275); //cor azul
+    CV::color(5);
+    CV::rectFill(1100,225,1150,275); //cor ciano
+    //palheta de cores da diagonal
+    CV::color(0);
+    CV::text(830, 190, "Cores para destaque da diagonal");
+    CV::color(2);
+    CV::rectFill(830,125,880,175); //cor vermelha
+    CV::color(3);
+    CV::rectFill(920,125,970,175); //cor verde
+    CV::color(4);
+    CV::rectFill(1010,125,1060,175); //cor azul
+    CV::color(5);
+    CV::rectFill(1100,125,1150,175); //cor ciano
+
+    //printar quadrado em volta da cor selecionada
+    if (liberadestaca==1){
+        if (cores_lin_col==2){
+            CV::color(0);
+            CV::rect(830,225,880,275);
+            CV::rect(829,224,881,276);
+        }
+        if (cores_lin_col==3){
+            CV::color(0);
+            CV::rect(920,225,970,275);
+            CV::rect(919,224,971,276);
+        }
+        if (cores_lin_col==4){
+            CV::color(0);
+            CV::rect(1010,225,1060,275);
+            CV::rect(1009,224,1061,276);
+        }
+        if (cores_lin_col==5){
+            CV::color(0);
+            CV::rect(1100,225,1150,275);
+            CV::rect(1099,224,1151,276);
+        }
+    }
+    if (destacadiag==1){
+        if (cor_diag==2){
+            CV::color(0);
+            CV::rect(830,125,880,175);
+            CV::rect(829,124,881,176);
+        }
+        if (cor_diag==3){
+            CV::color(0);
+            CV::rect(920,125,970,175);
+            CV::rect(919,124,971,176);
+
+        }
+        if (cor_diag==4){
+            CV::color(0);
+            CV::rect(1010,125,1060,175);
+            CV::rect(1009,124,1061,176);
+        }
+        if (cor_diag==5){
+            CV::color(0);
+            CV::rect(1100,125,1150,175);
+            CV::rect(1099,124,1151,176);
+        }
+    }
+}
+
+
+void animacaoTela()
+{
+    if (anim_menu>800){
+            CV::color(1);
+            CV::rectFill(anim_menu,0,1400,1000);
+            anim_menu--;
+            CV::color(0);
+            CV::line(90, 585, 130+anim_matriz, 585);
+            CV::line(90, 585, 90, 585-anim_matriz);
+            Sleep(2);
+            anim_matriz++;
+            return;
+        }
+        CV::color(0);
+        CV::line(90, 585, 530, 585);
+        CV::line(90, 585, 90, 185);
+        CV::color(1);
+        CV::rectFill(800,0,1400,1000);
+        if (anim_botoes<75){
+            CV::color(1,1,1);
+            CV::rectFill(830,500,830+anim_botoes,500+anim_botoes);//tecla M
+            CV::rectFill(950,500,950+anim_botoes,500+anim_botoes); //Tecla N
+            CV::rectFill(1070,500,1070+anim_botoes,500+anim_botoes); //Tecla S
+            CV::rectFill(830,375,830+anim_botoes,375+anim_botoes); //tecla D
+            CV::rectFill(950,375,950+anim_botoes,375+anim_botoes); //tecla +
+            CV::rectFill(1070,375,1070+anim_botoes,375+anim_botoes); //tecla -
+            Sleep(4);
+            anim_botoes++;
+            return;
+        }
+        CV::color(1,1,1);
+        CV::rectFill(830,500,905,575);//tecla M
+        CV::rectFill(950,500,1025,575); //Tecla N
+        CV::rectFill(1070,500,1145,575); //Tecla S
+        CV::rectFill(830,375,905,450);
+        CV::rectFill(950,375,1025,450);
+        CV::rectFill(1070,375,1145,450);
+        if (anim_paleta<275){
+            CV::color(1,1,1);
+            CV::rectFill(815,325,1175,325-anim_paleta);
+            Sleep(4);
+            anim_paleta++;
+            return;
+        }
+        animacao=0;
+
+}
