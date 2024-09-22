@@ -1,0 +1,230 @@
+//arquivo responsavel por executar a maior parte das funcoes do trabalho, como destacar as colunas, diagonais e linhas e imprimir a soma das mesmas
+//sao as funcoes das teclas D, S e M
+#include "LinhasColunasDiag.h"
+#include "gl_canvas2d.h"
+
+int colunaMaiorSoma(int matriz[g_maxl][g_maxc]) { //funcao para obter o valor da coluna de maior soma
+    int soma[g_maxl];
+    int i, j;
+    int x, y;
+    x= 95;
+    y= 165-40*mudamat;
+    char rescoluna[dim_matriz];
+    int msoma, colunamsoma;
+    colunamsoma= 0;
+    msoma= soma[0];
+    for (j = 0; j < dim_matriz; j++) {
+        soma[j] = 0;
+        for (i = 0; i < dim_matriz; i++) {
+            soma[j] += matriz[i][j];
+        }
+    }
+
+    if (exibir_soma==1){
+        for (j=0; j<dim_matriz; j++) {
+            if (soma[j]>=0){
+                CV::color(1);
+                sprintf(rescoluna," %d ", soma[j]);
+                CV::text(x, y, rescoluna);
+                x+= 40;
+            }
+            else{
+                CV::color(1);
+                sprintf(rescoluna,"%d ", soma[j]);
+                CV::text(x, y, rescoluna);
+                x+= 40;
+            }
+        }
+    }
+
+    colunamsoma= 0;
+    msoma= soma[0];
+
+    for (j=0; j<dim_matriz; j++){
+        if (soma[j]>msoma){
+            msoma= soma[j];
+            colunamsoma= j;
+        }
+    }
+    return colunamsoma;
+}
+
+
+int linhaMaiorSoma(int matriz[g_maxl][g_maxc]) { //funcao para obter o valor da linha de maior soma
+    int soma[dim_matriz];
+    int i, j;
+    int x, y;
+    x= 500+40*mudamat;
+    y= 560;
+    char reslinha[dim_matriz];
+    int msoma, linhamsoma;
+    linhamsoma= 0;
+    msoma= soma[0];
+
+    for (i=0; i<dim_matriz; i++) {
+        soma[i] = 0;
+        for (j = 0; j < dim_matriz; j++) {
+            soma[i] += matriz[i][j];
+        }
+    }
+
+    if (exibir_soma==1){
+        for (i=0; i<dim_matriz; i++){
+            if (soma[i]>=0){
+                CV::color(1);
+                sprintf(reslinha," %d ", soma[i] );
+                CV::text(x,y, reslinha);
+                y-= 40;
+            }
+            else{
+                CV::color(1);
+                sprintf(reslinha,"%d ", soma[i] );
+                CV::text(x,y, reslinha);
+                y-= 40;
+            }
+        }
+    }
+
+    linhamsoma= 0;
+    msoma= soma[0];
+
+    for (i=0; i<dim_matriz; i++){
+        if (soma[i]>msoma){
+            msoma= soma[i];
+            linhamsoma= i;
+        }
+    }
+    return linhamsoma;
+}
+
+
+void destacaRect(int matriz[g_maxl][g_maxc])
+{
+    if (liberadestaca==1){
+        int xrectcoluna, yrectcoluna, coluna, linha, xrectlinha, yrectlinha;
+        int x, y; //variaveis aleatorias criadas apenas para controlar a multiplicacao para o print da linha e coluna
+        coluna= colunaMaiorSoma(matriz); //obter a coluna de maior soma para calculo
+        linha= linhaMaiorSoma(matriz); //obter a linha de maior soma para calculo
+        //info para o print da coluna
+        xrectcoluna= (90+coluna*40);
+        yrectcoluna= 585;
+        CV::color(cores_lin_col);
+        //info para o print da linha
+        xrectlinha= 90;
+        yrectlinha= (545-linha*40);
+
+        //print da coluna
+
+        for (x=1; x<=dim_matriz; x++){
+            y= 585-40*x;
+            if(y!=yrectlinha){
+                CV::line(xrectcoluna, 585-40*(x-1), xrectcoluna, y);
+                CV::line(xrectcoluna+40, 585-40*(x-1), xrectcoluna+40, y);
+            }
+        }
+        CV::line(xrectcoluna, 585,xrectcoluna+40, 585);
+        CV::line(xrectcoluna, y, xrectcoluna+40, y);
+        //print da linha
+
+        for (x=1; x<=dim_matriz; x++){
+            y= 90+40*(x-1);
+            if(y!=xrectcoluna){
+                CV::line(y, yrectlinha, y+40, yrectlinha);
+                CV::line(y, yrectlinha+40, y+40, yrectlinha+40);
+            }
+        }
+        CV::line(90, yrectlinha, 90, yrectlinha+40);
+        CV::line(y+40, yrectlinha, y+40, yrectlinha+40);
+
+    }
+}
+
+
+void destacaDiagonal(int matriz[g_maxl][g_maxc])
+{
+    int i, j;
+    int x, y;
+    int soma[2];
+    char resdiag[dim_matriz];
+    int diagmsoma;
+    soma[1]= 0;
+    soma[0]= 0;
+
+
+    j=dim_matriz-1;
+    for (i=0; i<dim_matriz; i++){ //diagonal secundaria
+        soma[1] += matriz[i][j];
+        j--;
+    }
+
+    j=0;
+    for (i=0; i<dim_matriz; i++) { //diagonal principal
+        soma[0] += matriz[i][j];
+        j++;
+        }
+
+    if (soma[1]>soma[0]){
+        diagmsoma= 0;
+    }
+    else {
+        diagmsoma= 1;
+    }
+
+    if (diagmsoma==1){ //diagonal principal
+        x= 100;
+        y= 560;
+        j= 0;
+        for (i=0; i<dim_matriz; i++) {
+            if (matriz[i][i]>=0){
+                CV::color(cor_diag);
+                sprintf(resdiag," %d ", matriz[i][j] );
+                CV::text(x,y, resdiag);
+                x+= 40;
+                y-= 40;
+            }
+            else{
+                CV::color(cor_diag);
+                sprintf(resdiag,"%d ", matriz[i][j] );
+                CV::text(x,y, resdiag);
+                x+= 40;
+                y-= 40;
+            }
+        j++;
+    }
+    CV::line(90,570,90+dim_matriz*40, 570-dim_matriz*40);
+    CV::line(110,590,110+dim_matriz*40, 590-dim_matriz*40);
+    CV::line(90+dim_matriz*40, 570-dim_matriz*40, 110+dim_matriz*40, 590-dim_matriz*40);
+    CV::line(90, 570, 110, 590);
+
+}
+    if (diagmsoma==0){ // diagonal secundaria
+        x= 460+mudamat*40;
+        y= 560;
+        j=dim_matriz-1;
+        for (i=0; i<dim_matriz; i++) {
+            if (matriz[i][j]>=0){
+                CV::color(cor_diag);
+                sprintf(resdiag," %d ", matriz[i][j] );
+                CV::text(x,y, resdiag);
+                x-=40;
+                y-=40;
+            }
+            else{
+                CV::color(cor_diag);
+                sprintf(resdiag,"%d ", matriz[i][j] );
+                CV::text(x,y, resdiag);
+                x-=40;
+                y-=40;
+            }
+        j--;
+        }
+        CV::line(80+dim_matriz*40,590,80, 190-mudamat*40);
+        CV::line(100+dim_matriz*40,570,100, 170-mudamat*40);
+        CV::line(80+dim_matriz*40,590, 100+dim_matriz*40,570);
+        CV::line(80, 190-mudamat*40,100, 170-mudamat*40);
+
+    }
+    CV::text(100+dim_matriz*40, 560-dim_matriz*40, soma[0]);
+    CV::text(60, 560-dim_matriz*40, soma[1]);
+    CV::color(2);
+}
